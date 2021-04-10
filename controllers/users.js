@@ -96,5 +96,33 @@ module.exports = {
       });
     }
   },
-  updateUser: async (req, res) => {},
+  updateUser: async (req, res) => {
+    try {
+      console.log(typeof req.body.fullname);
+      const id = req.params.id;
+      const images = req.file === undefined ? null : req.file.filename;
+      const userId = await User.findByPk(id);
+      if (!userId) {
+        return res.status(404).json({
+          success: false,
+          message: "USER NOT FOUND",
+        });
+      }
+      let updatedData = { ...req.body, images };
+      if (req.body.password) {
+        const hashPassword = await bcrypt.hash(req.body.password, 10);
+        updatedData.password = hashPassword;
+      }
+      await userId.update(updatedData);
+      return res.status(200).json({
+        success: true,
+        message: "UPDATE SUCCESS",
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
 };

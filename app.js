@@ -10,6 +10,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/", routes);
+app.use(express.static("uploads"));
 
 app.listen(process.env.PORT, (err) => {
   console.log(`LISTENING ON PORT ${process.env.PORT}`);
