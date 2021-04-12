@@ -1,12 +1,12 @@
 const { User } = require("../models/index");
 const bcrypt = require("bcrypt");
+const fs = require("fs");
 
+const mailFormat = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+const passwordFormat = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
 module.exports = {
   register: async (req, res) => {
     try {
-      const mailFormat = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-      const passwordFormat = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
-
       // CHECK
       const checkEmail = await User.findOne({
         where: { email: req.body.email },
@@ -96,11 +96,12 @@ module.exports = {
       });
     }
   },
+
   updateUser: async (req, res) => {
     try {
-      console.log(typeof req.body.fullname);
+      let hashPassword;
       const id = req.params.id;
-      const images = req.file === undefined ? null : req.file.filename;
+      const { fullname, address, phone, role, password } = req.body;
       const userId = await User.findByPk(id);
       if (!userId) {
         return res.status(404).json({
@@ -108,15 +109,60 @@ module.exports = {
           message: "USER NOT FOUND",
         });
       }
-      let updatedData = { ...req.body, images };
-      if (req.body.password) {
-        const hashPassword = await bcrypt.hash(req.body.password, 10);
-        updatedData.password = hashPassword;
+
+      if (password) {
+        if (!password.match(passwordFormat)) {
+          return res.status(404).json({
+            success: false,
+            message:
+              "PASSWORD MUST INCLUDES ATLEAST 1 UPPERCASE, LOWERCASE, NUMBER, SYMBOL AND MINIMUM 8 CHARACTERS",
+          });
+        }
+        hashPassword = await bcrypt.hash(password, 10);
       }
+
+      const updatedData = {
+        fullname: fullname === "" ? userId.fullname : fullname,
+        address: address === "" ? userId.address : address,
+        phone: phone === "" ? userId.phone : phone,
+        role: role === "" ? userId.role : role,
+        password: password === "" ? userId.password : hashPassword,
+        images: req.file === undefined ? userId.images : req.file.filename,
+      };
+
+      if (updatedData.images) {
+        fs.unlink(`uploads/${userId.images}`, (err) => {
+          !err ? console.log("ok") : console.log("false");
+        });
+      }
+
       await userId.update(updatedData);
       return res.status(200).json({
         success: true,
         message: "UPDATE SUCCESS",
+        response: updatedData,
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+  deleteUser: async (req, res) => {
+    try {
+      const id = req.params.id;
+      const user = await User.findByPk(id);
+      if (user) {
+        fs.unlink(`uploads/${user.images}`, (err) => {
+          !err ? console.log("ok") : console.log("false");
+        });
+      }
+
+      await User.destroy({ where: { id: id } });
+      return res.status(200).json({
+        success: true,
+        message: "SUCCESS DELETE USER",
       });
     } catch (error) {
       return res.status(404).json({
