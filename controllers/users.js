@@ -5,6 +5,23 @@ const fs = require("fs");
 const mailFormat = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 const passwordFormat = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
 module.exports = {
+  getProfile: async (req, res) => {
+    try {
+      const id = req.params.id;
+      const user = await User.findByPk(id);
+      const data = { ...user.dataValues, password: undefined };
+      return res.json({
+        success: true,
+        message: "SUCCESS GET PROFILE",
+        result: data,
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
   register: async (req, res) => {
     try {
       if (!req.body.email.match(mailFormat)) {
@@ -87,7 +104,6 @@ module.exports = {
           message: "WRONG PASSWORD",
         });
       }
-
       const data = { ...checkEmail.dataValues, password: undefined };
       return res.status(200).json({
         success: true,
