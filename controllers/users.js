@@ -7,6 +7,13 @@ const passwordFormat = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
 module.exports = {
   register: async (req, res) => {
     try {
+      if (!req.body.email.match(mailFormat)) {
+        return res.status(404).json({
+          success: false,
+          message: "EMAIL NOT VALID",
+        });
+      }
+      ``;
       // CHECK
       const checkEmail = await User.findOne({
         where: { email: req.body.email },
@@ -18,12 +25,7 @@ module.exports = {
           message: "EMAIL ALREADY EXISTS",
         });
       }
-      if (!req.body.email.match(mailFormat)) {
-        return res.status(404).json({
-          success: false,
-          message: "EMAIL NOT VALID",
-        });
-      }
+
       if (!req.body.password.match(passwordFormat)) {
         return res.status(404).json({
           success: false,
@@ -85,9 +87,12 @@ module.exports = {
           message: "WRONG PASSWORD",
         });
       }
+
+      const data = { ...checkEmail.dataValues, password: undefined };
       return res.status(200).json({
         success: true,
         message: "LOGIN SUCCESS",
+        result: data,
       });
     } catch (error) {
       return res.status(404).json({
@@ -153,6 +158,7 @@ module.exports = {
     try {
       const id = req.params.id;
       const user = await User.findByPk(id);
+
       if (user) {
         fs.unlink(`uploads/${user.images}`, (err) => {
           !err ? console.log("ok") : console.log("false");
